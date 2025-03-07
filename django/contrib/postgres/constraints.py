@@ -182,6 +182,12 @@ class ExclusionConstraint(BaseConstraint):
             meta=model._meta, exclude=exclude
         )
         replacements = {F(field): value for field, value in replacement_map.items()}
+        if (
+            self.condition
+            and exclude
+            and self._expression_refs_exclude(model, self.condition, exclude)
+        ):
+            return
         lookups = []
         for expression, operator in self.expressions:
             if isinstance(expression, str):
