@@ -1,6 +1,6 @@
 from types import NoneType
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import FieldError, ValidationError
 from django.db import DEFAULT_DB_ALIAS
 from django.db.backends.ddl_references import Expressions, Statement, Table
 from django.db.models import BaseConstraint, Deferrable, F, Q
@@ -206,9 +206,16 @@ class ExclusionConstraint(BaseConstraint):
                     self.get_violation_error_message(), code=self.violation_error_code
                 )
         else:
-            if (self.condition & Exists(queryset.filter(self.condition))).check(
-                replacement_map, using=using
-            ):
-                raise ValidationError(
-                    self.get_violation_error_message(), code=self.violation_error_code
-                )
+            against = instance._get_field_expression_map(
+                meta=model._meta, exclude=exclude
+            )
+            try:
+                if (self.condition & Exists(queryset.filter(self.condition))).check(
+                    against, using=using
+                ):
+                    raise ValidationError(
+                        self.get_violation_error_message(),
+                        code=self.violation_error_code,
+                    )
+            except FieldError:
+                pass
