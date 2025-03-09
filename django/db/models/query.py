@@ -927,6 +927,10 @@ class QuerySet(AltersData):
         Return a tuple of (object, created), where created is a boolean
         specifying whether an object was created.
         """
+        if self._known_related_objects:
+            field, related_objects = next(iter(self._known_related_objects.items()))
+            rel_obj = next(iter(related_objects.values()))
+            kwargs[field.name] = rel_obj
         # The get() needs to be targeted at the write database in order
         # to avoid potential transaction consistency problems.
         self._for_write = True
@@ -968,7 +972,10 @@ class QuerySet(AltersData):
         update_defaults = defaults or {}
         if create_defaults is None:
             create_defaults = update_defaults
-
+        if self._known_related_objects:
+            field, related_objects = next(iter(self._known_related_objects.items()))
+            rel_obj = next(iter(related_objects.values()))
+            kwargs[field.name] = rel_obj
         self._for_write = True
         with transaction.atomic(using=self.db):
             # Lock the row so that a concurrent update is blocked until
