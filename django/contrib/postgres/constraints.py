@@ -206,6 +206,10 @@ class ExclusionConstraint(BaseConstraint):
                     self.get_violation_error_message(), code=self.violation_error_code
                 )
         else:
+            if exclude and self._expression_refs_exclude(
+                model, self.condition, exclude
+            ):
+                return
             if (self.condition & Exists(queryset.filter(self.condition))).check(
                 replacement_map, using=using
             ):
