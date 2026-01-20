@@ -696,14 +696,17 @@ class QuerySet(AltersData):
     acreate.alters_data = True
 
     def _prepare_for_bulk_create(self, objs):
+        pk = self.model._meta.pk
         objs_with_pk, objs_without_pk = [], []
         for obj in objs:
+            for field in getattr(pk, "fields", (pk,)):
+                field.pre_save(obj, True)
             if isinstance(obj.pk, DatabaseDefault):
                 objs_without_pk.append(obj)
             elif obj._is_pk_set():
                 objs_with_pk.append(obj)
             else:
-                obj.pk = obj._meta.pk.get_pk_value_on_save(obj)
+                obj.pk = pk.get_pk_value_on_save(obj)
                 if obj._is_pk_set():
                     objs_with_pk.append(obj)
                 else:

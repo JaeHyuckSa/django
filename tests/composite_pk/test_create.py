@@ -1,7 +1,7 @@
 from django.db import IntegrityError
 from django.test import TestCase, skipUnlessDBFeature
 
-from .models import Post, Tenant, User
+from .models import Post, Tenant, TimeStamped, User
 
 
 class CompositePKCreateTests(TestCase):
@@ -161,3 +161,19 @@ class CompositePKCreateTests(TestCase):
         post = Post.objects.create()
         with self.assertRaises(IntegrityError):
             Post(tenant_id=post.tenant_id, id=post.id).save()
+
+    @skipUnlessDBFeature("can_return_rows_from_bulk_insert")
+    def test_bulk_create_auto_now_add_pk(self):
+        objs = [
+            TimeStamped(id=1, text="first"),
+            TimeStamped(id=2, text="second"),
+            TimeStamped(id=3, text="third"),
+        ]
+        created = TimeStamped.objects.bulk_create(objs)
+        self.assertEqual(len(created), 3)
+        self.assertEqual(TimeStamped.objects.count(), 3)
+        for i, obj in enumerate(created, start=1):
+            self.assertEqual(obj.id, i)
+            self.assertIsNotNone(obj.created)
+            self.assertIsNotNone(obj.pk)
+            self.assertEqual(obj.pk, (obj.id, obj.created))
